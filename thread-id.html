@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Thread ID</title>
+<style>
+  :root{
+    --bg:#1b1d21;
+    --panel:#232529;
+    --panel2:#2a2d32;
+    --line:#3a3d43;
+    --steel:#5b8fa8;
+    --steel-bright:#8ec4de;
+    --yellow:#e8b339;
+    --text:#edeeea;
+    --muted:#8b9098;
+    --good:#7ec98f;
+    --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--sans);}
+  body{
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:520px; margin:0 auto; padding:18px 16px 48px; }
+
+  header{ padding: 10px 2px 20px; }
+  .eyebrow{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--steel-bright); font-weight:600; margin-bottom:4px;
+  }
+  h1{
+    font-size:28px; margin:0; font-weight:800; letter-spacing:-0.02em;
+    display:flex; align-items:baseline; gap:8px;
+  }
+  h1 .unit{font-family:var(--mono); font-size:15px; color:var(--muted); font-weight:500;}
+  .sub{ color:var(--muted); font-size:13px; margin-top:6px; line-height:1.4; }
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:16px; margin-bottom:14px;
+  }
+  .label{
+    font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+    margin-bottom:8px; font-weight:600;
+  }
+
+  /* segmented control */
+  .seg{ display:flex; background:var(--panel2); border-radius:10px; padding:3px; gap:3px; }
+  .seg button{
+    flex:1; padding:10px 8px; border:none; border-radius:8px; background:transparent;
+    color:var(--muted); font-weight:700; font-size:13px; font-family:var(--sans);
+  }
+  .seg button.active{ background:var(--steel); color:#0f1113; }
+  .seg small{ display:block; font-weight:500; font-size:10.5px; margin-top:1px; opacity:.85; }
+
+  /* readout */
+  .readout{
+    background:#0f1113; border:1px solid var(--line); border-radius:10px;
+    padding:14px 14px; margin-top:10px;
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:var(--mono);
+  }
+  .readout .seg-val{ text-align:center; }
+  .readout .seg-val .num{ font-size:22px; color:var(--yellow); letter-spacing:.02em; }
+  .readout .seg-val .u{ font-size:10px; color:var(--muted); letter-spacing:.08em; margin-top:2px;}
+  .readout .x{ color:var(--muted); font-size:16px; padding:0 6px; }
+
+  .field{ margin-top:14px; }
+  .field-row{ display:flex; gap:8px; align-items:center; }
+  input[type=number]{
+    flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    font-family:var(--mono); font-size:20px; padding:10px 12px; border-radius:10px;
+    -webkit-appearance:none; width:100%;
+  }
+  input[type=number]:focus{ outline:none; border-color:var(--steel); }
+  .unit-toggle{ display:flex; background:var(--panel2); border-radius:10px; overflow:hidden; border:1px solid var(--line); }
+  .unit-toggle button{
+    padding:10px 12px; border:none; background:transparent; color:var(--muted);
+    font-family:var(--mono); font-size:13px; font-weight:600;
+  }
+  .unit-toggle button.active{ background:var(--steel); color:#0f1113; }
+
+  .tol-row{ display:flex; justify-content:space-between; align-items:baseline; margin-top:14px; }
+  .tol-row .label{ margin:0; }
+  .tol-val{ font-family:var(--mono); color:var(--yellow); font-size:13px; }
+  input[type=range]{
+    width:100%; margin-top:6px; -webkit-appearance:none; height:28px; background:transparent;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:4px; background:var(--line); border-radius:2px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+    background:var(--steel-bright); margin-top:-7px; border:2px solid #0f1113;
+  }
+
+  .note{ font-size:12px; color:var(--muted); line-height:1.4; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); }
+  .convout{ font-family:var(--mono); font-size:11.5px; color:var(--steel-bright); margin-top:7px; min-height:14px; }
+
+  .results-head{ display:flex; justify-content:space-between; align-items:center; margin: 22px 2px 10px; }
+  .results-head .label{ margin:0; }
+  .count{ font-family:var(--mono); font-size:12px; color:var(--muted); }
+
+  .result{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:14px; margin-bottom:10px;
+  }
+  .result.top{ border-color:var(--yellow); }
+  .result-top-row{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .desig{ font-size:19px; font-weight:800; letter-spacing:-0.01em; }
+  .fam{
+    font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--steel-bright);
+    background:rgba(91,143,168,0.15); padding:3px 7px; border-radius:6px; margin-left:8px; font-weight:700;
+  }
+  .spec{ font-family:var(--mono); color:var(--muted); font-size:12.5px; margin-top:4px; }
+  .spec b{ color:var(--text); font-weight:600; }
+  .deltas{ font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right; }
+  .deltas b{ color:var(--good); }
+  .bar{ height:5px; border-radius:3px; background:var(--panel2); margin-top:10px; overflow:hidden; }
+  .bar i{ display:block; height:100%; background:var(--yellow); border-radius:3px; }
+  .result.top .bar i{ background:var(--good); }
+
+  .empty{ text-align:center; padding:40px 20px; color:var(--muted); font-size:13.5px; line-height:1.6; }
+  .empty b{ color:var(--text); }
+  footer{ text-align:center; color:var(--muted); font-size:11px; margin-top:26px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Thread Diagnostic</div>
+    <h1>Thread ID <span class="unit">v1</span></h1>
+    <div class="sub">Measure the fastener, enter what you've got, and match it against ISO metric, UNC/UNF/UNEF, BSPP/BSPT, Whitworth (BSW), and BA reference threads within tolerance.</div>
+  </header>
+
+  <div class="card">
+    <div class="label">Thread type</div>
+    <div class="seg" id="typeSeg">
+      <button data-val="male" class="active">MALE<small>bolt / stud (external)</small></button>
+      <button data-val="female">FEMALE<small>nut / tapped hole (internal)</small></button>
+    </div>
+
+    <div class="field">
+      <div class="label">Outside diameter</div>
+      <div class="field-row">
+        <input id="diaInput" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 8.0">
+        <div class="unit-toggle" id="diaUnitToggle">
+          <button data-val="mm" class="active">mm</button>
+          <button data-val="in">in</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label">Pitch</div>
+      <div class="field-row">
+        <input id="pitchInput" type="number" inputmode="decimal" step="0.01" placeholder="e.g. 1.25">
+        <div class="unit-toggle" id="pitchUnitToggle">
+          <button data-val="mm" class="active">mm</button>
+          <button data-val="tpi">TPI</button>
+        </div>
+      </div>
+      <div class="convout" id="pitchConv"></div>
+    </div>
+
+    <div class="note" id="femaleNote" style="display:none;">
+      In FEMALE mode, diameter is compared against the thread's basic <b>minor (root) diameter</b> — measure across the crests of the internal thread itself, not the tap-drill hole before threading.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tol-row"><div class="label">Diameter tolerance</div><div class="tol-val" id="diaTolVal">±0.15 mm</div></div>
+    <input type="range" id="diaTol" min="0.05" max="0.5" step="0.01" value="0.15">
+
+    <div class="tol-row"><div class="label" id="pitchTolLabel">Pitch tolerance</div><div class="tol-val" id="pitchTolVal">±0.08 mm</div></div>
+    <input type="range" id="pitchTol" min="0.02" max="0.3" step="0.01" value="0.08">
+  </div>
+
+  <div class="results-head">
+    <div class="label">Possible matches</div>
+    <div class="count" id="resultCount">0</div>
+  </div>
+  <div id="results"></div>
+
+  <footer>Reference geometry only — confirm critical fits with go/no-go gauges or a pitch comparator.</footer>
+</div>
+
+<script>
+// ---------- Reference thread database ----------
+const IN = 25.4;
+const raw = [];
+// thread-form depth constants (major-to-minor diameter, both flanks) by included angle
+const ANGLE_K = { 60: 1.0825, 55: 1.2806, 47.5: 1.2 };
+
+// ISO Metric Coarse (ISO 724)
+[
+ [1,0.25],[1.2,0.25],[1.6,0.35],[2,0.4],[2.5,0.45],[3,0.5],[3.5,0.6],[4,0.7],
+ [5,0.8],[6,1.0],[7,1.0],[8,1.25],[10,1.5],[12,1.75],[14,2.0],[16,2.0],
+ [18,2.5],[20,2.5],[22,2.5],[24,3.0],[27,3.0],[30,3.5],[33,3.5],[36,4.0],
+ [39,4.0],[42,4.5],[45,4.5],[48,5.0],[52,5.0],[56,5.5],[60,5.5],[64,6.0]
+].forEach(([od,p]) => raw.push({desig:`M${od}`, family:'Metric Coarse', angle:60, od_mm:od, pitch_mm:p}));
+
+// ISO Metric Fine (common fine pitches)
+[
+ [8,1.0],[10,1.25],[10,1.0],[12,1.5],[12,1.25],[14,1.5],[16,1.5],[18,1.5],
+ [20,1.5],[22,1.5],[24,2.0],[27,2.0],[30,2.0],[33,2.0],[36,3.0],[39,3.0],
+ [42,3.0],[45,3.0],[48,3.0],[52,3.0],[56,4.0],[60,4.0],[64,4.0]
+].forEach(([od,p]) => raw.push({desig:`M${od}\u00d7${p}`, family:'Metric Fine', angle:60, od_mm:od, pitch_mm:p}));
+
+// UNC
+[
+ ['#1',0.073,64],['#2',0.086,56],['#3',0.099,48],['#4',0.112,40],['#5',0.125,40],
+ ['#6',0.138,32],['#8',0.164,32],['#10',0.190,24],['#12',0.216,24],
+ ['1/4',0.250,20],['5/16',0.3125,18],['3/8',0.375,16],['7/16',0.4375,14],
+ ['1/2',0.500,13],['9/16',0.5625,12],['5/8',0.625,11],['3/4',0.750,10],
+ ['7/8',0.875,9],['1',1.000,8],['1-1/8',1.125,7],['1-1/4',1.250,7],
+ ['1-3/8',1.375,6],['1-1/2',1.500,6]
+].forEach(([d,od,tpi]) => raw.push({desig:`${d}-${tpi} UNC`, family:'UNC', angle:60, od_mm:od*IN, tpi}));
+
+// UNF
+[
+ ['#0',0.060,80],['#1',0.073,72],['#2',0.086,64],['#3',0.099,56],['#4',0.112,48],
+ ['#5',0.125,44],['#6',0.138,40],['#8',0.164,36],['#10',0.190,32],['#12',0.216,28],
+ ['1/4',0.250,28],['5/16',0.3125,24],['3/8',0.375,24],['7/16',0.4375,20],
+ ['1/2',0.500,20],['9/16',0.5625,18],['5/8',0.625,18],['3/4',0.750,16],
+ ['7/8',0.875,14],['1',1.000,14],['1-1/8',1.125,12],['1-1/4',1.250,12],
+ ['1-3/8',1.375,12],['1-1/2',1.500,12]
+].forEach(([d,od,tpi]) => raw.push({desig:`${d}-${tpi} UNF`, family:'UNF', angle:60, od_mm:od*IN, tpi}));
+
+// UNEF (Unified National Extra Fine)
+[
+ ['#12',0.216,32],['1/4',0.250,32],['5/16',0.3125,32],['3/8',0.375,32],
+ ['7/16',0.4375,28],['1/2',0.500,28],['9/16',0.5625,24],['5/8',0.625,24],
+ ['11/16',0.6875,24],['3/4',0.750,20],['13/16',0.8125,20],['7/8',0.875,20],
+ ['15/16',0.9375,20],['1',1.000,20],['1-1/16',1.0625,18],['1-1/8',1.125,18],
+ ['1-3/16',1.1875,18],['1-1/4',1.250,18],['1-5/16',1.3125,18],['1-3/8',1.375,18],
+ ['1-7/16',1.4375,18],['1-1/2',1.500,18]
+].forEach(([d,od,tpi]) => raw.push({desig:`${d}-${tpi} UNEF`, family:'UNEF', angle:60, od_mm:od*IN, tpi}));
+
+// BSPP - British Standard Pipe Parallel (G) - Whitworth 55°, major diameter given directly in mm
+[
+ ['1/8',9.728,28],['1/4',13.157,19],['3/8',16.662,19],['1/2',20.955,14],
+ ['5/8',22.911,14],['3/4',26.441,14],['7/8',30.201,14],['1',33.249,11],
+ ['1-1/8',37.897,11],['1-1/4',41.910,11],['1-3/8',44.323,11],
+ ['1-1/2',47.803,11],['1-3/4',53.746,11],['2',59.614,11]
+].forEach(([d,od,tpi]) => raw.push({desig:`G ${d}`, family:'BSPP', angle:55, od_mm:od, tpi}));
+
+// Whitworth (BSW) - British Standard Whitworth, 55°, coarse imperial series
+[
+ ['1/8',0.125,40],['3/16',0.1875,24],['1/4',0.250,20],['5/16',0.3125,18],
+ ['3/8',0.375,16],['7/16',0.4375,14],['1/2',0.500,12],['9/16',0.5625,12],
+ ['5/8',0.625,11],['3/4',0.750,10],['7/8',0.875,9],['1',1.000,8],
+ ['1-1/8',1.125,7],['1-1/4',1.250,7],['1-3/8',1.375,6],['1-1/2',1.500,6],
+ ['1-3/4',1.750,5],['2',2.000,4.5]
+].forEach(([d,od,tpi]) => raw.push({desig:`${d}" BSW`, family:'Whitworth', angle:55, od_mm:od*IN, tpi}));
+
+// BA - British Association, 47.5°, metric dimensions, numbered 0 (largest) to 10 (smallest)
+[
+ [0,6.0,1.0],[1,5.3,0.9],[2,4.7,0.81],[3,4.1,0.73],[4,3.6,0.66],
+ [5,3.2,0.59],[6,2.8,0.53],[7,2.5,0.48],[8,2.2,0.43],[9,1.9,0.39],[10,1.7,0.35]
+].forEach(([n,od,p]) => raw.push({desig:`${n} BA`, family:'BA', angle:47.5, od_mm:od, pitch_mm:p}));
+
+// BSPT (R) taper - same gauge-plane diameters/TPI as BSP
+[
+ ['1/8',9.728,28],['1/4',13.157,19],['3/8',16.662,19],['1/2',20.955,14],
+ ['3/4',26.441,14],['1',33.249,11],['1-1/4',41.910,11],['1-1/2',47.803,11],['2',59.614,11]
+].forEach(([d,od,tpi]) => raw.push({desig:`R ${d}`, family:'BSPT', angle:55, od_mm:od, tpi}));
+
+// normalize: every entry gets BOTH pitch_mm and pitch_tpi (its native unit stays authoritative,
+// the other is derived) plus a display string in its natural/native unit.
+const DB = raw.map(t => {
+  const hasNativeTPI = t.tpi != null;
+  const pitch_mm  = hasNativeTPI ? (IN / t.tpi) : t.pitch_mm;
+  const pitch_tpi = hasNativeTPI ? t.tpi : (IN / t.pitch_mm);
+  const pitchDisplay = hasNativeTPI ? `${t.tpi} TPI` : `${t.pitch_mm} mm`;
+  return {...t, pitch_mm, pitch_tpi, pitchDisplay};
+});
+
+// ---------- state ----------
+const state = {
+  type: 'male',
+  diaUnit: 'mm',
+  pitchUnit: 'mm',
+  dia: null,
+  pitch: null,
+  diaTol: 0.15,
+  pitchTolMM: 0.08,
+  pitchTolTPI: 1.5,
+};
+const PITCH_TOL_RANGES = {
+  mm:  { min: 0.02, max: 0.30, step: 0.01, unit: 'mm' },
+  tpi: { min: 0.5,  max: 4.0,  step: 0.1,  unit: 'TPI' },
+};
+
+// ---------- helpers ----------
+function minorDia(entry){
+  const k = ANGLE_K[entry.angle] ?? 1.0825;
+  return entry.od_mm - k * entry.pitch_mm;
+}
+function effectiveDia(entry, type){
+  return type === 'female' ? minorDia(entry) : entry.od_mm;
+}
+function currentPitchTol(){
+  return state.pitchUnit === 'tpi' ? state.pitchTolTPI : state.pitchTolMM;
+}
+
+function syncPitchTolSlider(){
+  const r = PITCH_TOL_RANGES[state.pitchUnit];
+  const slider = document.getElementById('pitchTol');
+  slider.min = r.min; slider.max = r.max; slider.step = r.step;
+  slider.value = currentPitchTol();
+  document.getElementById('pitchTolLabel').textContent = `Pitch tolerance (${r.unit})`;
+  document.getElementById('pitchTolVal').textContent = `±${currentPitchTol().toFixed(2)} ${r.unit}`;
+}
+
+function render(){
+  document.querySelectorAll('#typeSeg button').forEach(b => b.classList.toggle('active', b.dataset.val === state.type));
+  document.querySelectorAll('#diaUnitToggle button').forEach(b => b.classList.toggle('active', b.dataset.val === state.diaUnit));
+  document.querySelectorAll('#pitchUnitToggle button').forEach(b => b.classList.toggle('active', b.dataset.val === state.pitchUnit));
+  document.getElementById('femaleNote').style.display = state.type === 'female' ? 'block' : 'none';
+  document.getElementById('diaTolVal').textContent = `±${state.diaTol.toFixed(2)} mm`;
+  document.getElementById('pitchInput').placeholder = state.pitchUnit === 'tpi' ? 'e.g. 20' : 'e.g. 1.25';
+  syncPitchTolSlider();
+
+  const results = document.getElementById('results');
+  const countEl = document.getElementById('resultCount');
+  const convEl = document.getElementById('pitchConv');
+
+  if (state.pitch != null && !isNaN(state.pitch)) {
+    convEl.textContent = state.pitchUnit === 'tpi'
+      ? `→ ${(IN / state.pitch).toFixed(3)} mm pitch`
+      : `→ ${(IN / state.pitch).toFixed(2)} TPI`;
+  } else {
+    convEl.textContent = '';
+  }
+
+  if (state.dia == null || state.pitch == null || isNaN(state.dia) || isNaN(state.pitch)) {
+    results.innerHTML = `<div class="empty">Enter a diameter and pitch above to see <b>candidate threads</b>.</div>`;
+    countEl.textContent = '0';
+    return;
+  }
+
+  const dia_mm = state.diaUnit === 'in' ? state.dia * IN : state.dia;
+  const pitchTol = currentPitchTol();
+
+  // Pitch is matched NATIVELY in whichever unit is selected: when 'mm' is active we compare
+  // mm-to-mm against every entry's pitch_mm; when 'TPI' is active we compare TPI-to-TPI against
+  // every entry's pitch_tpi (metric entries get their TPI equivalent derived, and vice versa),
+  // and the tolerance slider itself is expressed in that same unit.
+  let matches = DB.map(entry => {
+    const eDia = effectiveDia(entry, state.type);
+    const dDiff = Math.abs(eDia - dia_mm);
+    const entryPitchInUnit = state.pitchUnit === 'tpi' ? entry.pitch_tpi : entry.pitch_mm;
+    const pDiff = Math.abs(entryPitchInUnit - state.pitch);
+    // normalized score so dia and pitch contribute on a comparable 0..1-ish scale regardless of unit
+    const score = (dDiff / state.diaTol) + (pDiff / pitchTol);
+    return {entry, eDia, dDiff, pDiff, entryPitchInUnit, score};
+  }).filter(m => m.dDiff <= state.diaTol && m.pDiff <= pitchTol)
+    .sort((a,b) => a.score - b.score);
+
+  countEl.textContent = matches.length;
+
+  if (matches.length === 0) {
+    results.innerHTML = `<div class="empty">No matches within tolerance.<br>Try widening the diameter or pitch tolerance.</div>`;
+    return;
+  }
+
+  const unitLabel = state.pitchUnit === 'tpi' ? 'TPI' : 'mm';
+  results.innerHTML = matches.map((m, i) => {
+    const confPct = Math.min(100, Math.max(6, 100 - (m.score / 2) * 100));
+    const dSign = m.eDia - dia_mm >= 0 ? '+' : '\u2212';
+    const pSign = m.entryPitchInUnit - state.pitch >= 0 ? '+' : '\u2212';
+    const pDiffStr = state.pitchUnit === 'tpi' ? m.pDiff.toFixed(2) : m.pDiff.toFixed(3);
+    return `
+    <div class="result ${i===0 ? 'top' : ''}">
+      <div class="result-top-row">
+        <div><span class="desig">${m.entry.desig}</span><span class="fam">${m.entry.family}</span></div>
+      </div>
+      <div class="spec">nominal Ø <b>${m.entry.od_mm.toFixed(3)} mm</b> &middot; pitch <b>${m.entry.pitchDisplay}</b>${state.type==='female' ? ` &middot; minor Ø <b>${minorDia(m.entry).toFixed(3)} mm</b>` : ''}</div>
+      <div class="deltas">Δdia ${dSign}${m.dDiff.toFixed(3)}mm &nbsp; Δpitch ${pSign}${pDiffStr}${unitLabel}</div>
+      <div class="bar"><i style="width:${confPct.toFixed(0)}%"></i></div>
+    </div>`;
+  }).join('');
+}
+
+// ---------- events ----------
+document.getElementById('typeSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  state.type = btn.dataset.val; render();
+});
+document.getElementById('diaUnitToggle').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  state.diaUnit = btn.dataset.val; render();
+});
+document.getElementById('pitchUnitToggle').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  state.pitchUnit = btn.dataset.val; render();
+});
+document.getElementById('diaInput').addEventListener('input', e => { state.dia = parseFloat(e.target.value); render(); });
+document.getElementById('pitchInput').addEventListener('input', e => { state.pitch = parseFloat(e.target.value); render(); });
+document.getElementById('diaTol').addEventListener('input', e => { state.diaTol = parseFloat(e.target.value); render(); });
+document.getElementById('pitchTol').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  if (state.pitchUnit === 'tpi') { state.pitchTolTPI = v; } else { state.pitchTolMM = v; }
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
